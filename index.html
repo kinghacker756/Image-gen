@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chatbot</title>
+    <style>
+        :root {
+            --primary-color: #6200ee;
+            --primary-light: #7c4dff;
+            --text-primary: #202124;
+            --text-secondary: #5f6368;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --user-message-bg: #e3f2fd;
+            --bot-message-bg: #f1f3f4;
+        }
+
+        body {
+            font-family: 'Google Sans', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-container {
+            max-width: 900px;
+            width: 100%;
+            margin: 20px auto;
+            background: var(--bg-primary);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            border-radius: 8px;
+            overflow: hidden;
+            height: calc(100vh - 40px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 16px;
+            font-size: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .chat-header img {
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            background: var(--user-message-bg);
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message {
+            background: var(--bot-message-bg);
+            margin-right: auto;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-area {
+            display: flex;
+            padding: 16px;
+            border-top: 1px solid #e0e0e0;
+            background: var(--bg-primary);
+            position: relative;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 12px 16px;
+            padding-right: 50px;
+            border: 1px solid #dadce0;
+            border-radius: 24px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #user-input:focus {
+            border-color: var(--primary-color);
+        }
+
+        #send-btn {
+            position: absolute;
+            right: 28px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--primary-color);
+        }
+
+        #send-btn:disabled {
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            padding: 12px 16px;
+            background: var(--bot-message-bg);
+            border-radius: 18px;
+            margin-bottom: 16px;
+            align-items: center;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingAnimation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        .message-content img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin-top: 8px;
+        }
+
+        .dark-mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" id="dark-mode-toggle">🌙</button>
+    
+    <div class="chat-container">
+        <div class="chat-header">
+            <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg" alt="Gemini Logo">
+            <span>Gemini Chatbot</span>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <div class="message bot-message">
+                <div class="message-content">
+                    Hello! I'm your Gemini-powered chatbot. Ask me anything!
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Type your message here..." autocomplete="off">
+            <button id="send-btn" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Replace with your actual API key
+        const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+        const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+        
+        // DOM Elements
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        
+        // State
+        let isDarkMode = false;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load chat history from localStorage
+            const savedChat = localStorage.getItem('chatHistory');
+            if (savedChat) {
+                chatMessages.innerHTML = savedChat;
+                scrollToBottom();
+            }
+            
+            // Set up event listeners
+            userInput.addEventListener('input', toggleSendButton);
+            userInput.addEventListener('keypress', handleKeyPress);
+            sendBtn.addEventListener('click', sendMessage);
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+        });
+        
+        // Functions
+        function toggleSendButton() {
+            sendBtn.disabled = userInput.value.trim() === '';
+        }
+        
+        function handleKeyPress(e) {
+            if (e.key === 'Enter' && !e.shiftKey && userInput.value.trim() !== '') {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+        
+        function sendMessage() {
+            const message = userInput.value.trim();
+            if (message === '') return;
+            
+            // Add user message to chat
+            addMessage('user', message);
+            userInput.value = '';
+            toggleSendButton();
+            
+            // Show typing indicator
+            const typingIndicator = document.createElement('div');
+            typingIndicator.className = 'typing-indicator';
+            typingIndicator.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            chatMessages.appendChild(typingIndicator);
+            scrollToBottom();
+            
+            // Call Gemini API
+            callGeminiAPI(message)
+                .then(response => {
+                    // Remove typing indicator
+                    chatMessages.removeChild(typingIndicator);
+                    
+                    // Add bot response
+                    addMessage('bot', response);
+                    
+                    // Save chat history
+                    localStorage.setItem('chatHistory', chatMessages.innerHTML);
+                })
+                .catch(error => {
+                    console.error('API Error:', error);
+                    chatMessages.removeChild(typingIndicator);
+                    addMessage('bot', `Sorry, I encountered an error: ${error.message}`);
+                });
+        }
+        
+        async function callGeminiAPI(prompt) {
+            const url = `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`;
+            
+            const payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": prompt
+                            }
+                        ]
+                    }
+                ]
+            };
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-goog-api-key': GEMINI_API_KEY
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Extract the response text from Gemini's response format
+                if (data.candidates && data.candidates[0].content.parts[0].text) {
+                    return data.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error('Unexpected response format from Gemini API');
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                throw error;
+            }
+        }
+        
+        function addMessage(sender, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            
+            // Simple markdown parsing for bold and links
+            let formattedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+            
+            contentDiv.innerHTML = formattedContent;
+            messageDiv.appendChild(contentDiv);
+            
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+        
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('dark-mode', isDarkMode);
+            
+            if (isDarkMode) {
+                document.documentElement.style.setProperty('--primary-color', '#bb86fc');
+                document.documentElement.style.setProperty('--primary-light', '#cf9fff');
+                document.documentElement.style.setProperty('--text-primary', '#e1e1e1');
+                document.documentElement.style.setProperty('--text-secondary', '#a0a0a0');
+                document.documentElement.style.setProperty('--bg-primary', '#1e1e1e');
+                document.documentElement.style.setProperty('--bg-secondary', '#121212');
+                document.documentElement.style.setProperty('--user-message-bg', '#2d3a4a');
+                document.documentElement.style.setProperty('--bot-message-bg', '#2d2d2d');
+                darkModeToggle.textContent = '☀️';
+            } else {
+                document.documentElement.style.setProperty('--primary-color', '#6200ee');
+                document.documentElement.style.setProperty('--primary-light', '#7c4dff');
+                document.documentElement.style.setProperty('--text-primary', '#202124');
+                document.documentElement.style.setProperty('--text-secondary', '#5f6368');
+                document.documentElement.style.setProperty('--bg-primary', '#ffffff');
+                document.documentElement.style.setProperty('--bg-secondary', '#f5f5f5');
+                document.documentElement.style.setProperty('--user-message-bg', '#e3f2fd');
+                document.documentElement.style.setProperty('--bot-message-bg', '#f1f3f4');
+                darkModeToggle.textContent = '🌙';
+            }
+        }
+    </script>
+</body>
+</html>
